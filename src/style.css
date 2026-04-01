@@ -2,17 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .glass-card {
-    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl p-6 m-4;
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
-  .glass-card-sm {
-    @apply p-4 m-0;
+  body {
+    background: #000000;
+    overscroll-behavior: none;
   }
-  /* Remove number arrows natively */
-  input[type=number]::-webkit-inner-spin-button, 
-  input[type=number]::-webkit-outer-spin-button { 
-    -webkit-appearance: none; 
-    margin: 0; 
+  /* Remove number input arrows */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] { -moz-appearance: textfield; }
+}
+
+@layer components {
+  /* ─── iOS Liquid Glass Card ─── */
+  .glass {
+    @apply relative overflow-hidden rounded-2xl p-5;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 0 0 0.5px rgba(255,255,255,0.05) inset,
+      0 8px 32px rgba(0,0,0,0.4);
+  }
+  .glass-sm {
+    @apply p-4 rounded-xl;
+  }
+  /* ─── Shimmer highlight across top of glass ─── */
+  .glass::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  }
+
+  /* ─── Premium Button ─── */
+  .btn-ios {
+    @apply w-full py-4 rounded-2xl font-semibold text-[17px] transition-all duration-200 active:scale-[0.97] active:opacity-80;
+  }
+  .btn-primary {
+    @apply btn-ios text-white;
+    background: linear-gradient(135deg, #0A84FF 0%, #0066CC 100%);
+    box-shadow: 0 4px 24px rgba(10, 132, 255, 0.35);
+  }
+  .btn-secondary {
+    @apply btn-ios;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* ─── iOS Input ─── */
+  .input-ios {
+    @apply w-full px-4 py-3.5 rounded-xl text-[17px] text-white outline-none transition-all duration-200;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .input-ios::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+  }
+  .input-ios:focus {
+    border-color: rgba(10, 132, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
   }
 }

@@ -9,6 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
       manifest: {
+        id: 'com.shinigami.budgetsaver',
         name: 'Budget Saver',
         short_name: 'BudgetSaver',
         description: 'Track daily savings with cloud backup and sync across devices',
@@ -23,13 +24,13 @@ export default defineConfig({
             src: 'icon-192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any',
+            purpose: 'any maskable',
           },
           {
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any',
+            purpose: 'any maskable',
           },
           {
             src: 'premium-logo.png',

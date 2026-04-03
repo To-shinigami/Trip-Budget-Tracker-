@@ -1,5 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './firebase.js';
+import { backupToCloud, restoreFromCloud, mergeStates } from './backup.js';
+import { SignInPage, ProfileBadge } from './auth.jsx';
 import {
   loadState, saveState, getTodayDateStr,
   getTodayTarget, getTotalSaved, getInitialState
@@ -17,11 +21,30 @@ const GearIcon = () => (
 );
 
 const CheckCircle = () => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#30D158" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="url(#checkGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <defs>
+      <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#34D399" />
+        <stop offset="100%" stopColor="#06B6D4" />
+      </linearGradient>
+    </defs>
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
     <polyline points="22 4 12 14.01 9 11.01"/>
   </svg>
 );
+
+/* ═══════════════════════════════════════════════
+   AURORA BACKGROUND
+   ═══════════════════════════════════════════════ */
+function AuroraBackground() {
+  return (
+    <div className="aurora-bg">
+      <div className="orb orb-1" />
+      <div className="orb orb-2" />
+      <div className="orb orb-3" />
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════
    ONBOARDING SCREEN
@@ -37,7 +60,6 @@ function Onboarding({ state, onStart }) {
     onStart({ budget, startDate, endDate, manualDailyTarget: dailyLimit });
   };
 
-  // Calculate preview days
   let previewDays = null;
   if (startDate && endDate) {
     const diff = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000);
@@ -45,20 +67,20 @@ function Onboarding({ state, onStart }) {
   }
 
   return (
-    <div className="animate-slide-up w-full px-5 py-10 flex flex-col justify-center min-h-screen">
+    <div className="animate-slide-up w-full px-5 py-10 flex flex-col justify-center min-h-screen relative z-10">
       {/* Header */}
       <div className="text-center mb-10">
-        <div className="text-5xl mb-4">✈️</div>
-        <h1 className="text-[28px] font-bold text-white tracking-tight">
-          Trip Saver
+        <div className="text-5xl mb-4 animate-float">💰</div>
+        <h1 className="text-[28px] font-bold bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent tracking-tight">
+          Budget Saver
         </h1>
-        <p className="text-[15px] text-white/40 mt-2">
+        <p className="text-[15px] text-white/35 mt-2">
           Set your savings target below
         </p>
       </div>
 
       {/* Glass Form Card */}
-      <div className="glass space-y-5">
+      <div className="glass-liquid space-y-5">
         <Field label="Total Budget" suffix="BDT">
           <input type="number" value={budget} onChange={e => setBudget(parseInt(e.target.value) || 0)} className="input-ios text-right" />
         </Field>
@@ -79,8 +101,8 @@ function Onboarding({ state, onStart }) {
       {/* Preview Pill */}
       {previewDays && (
         <div className="flex justify-center mt-5 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ios-blue/10 border border-ios-blue/20">
-            <span className="text-ios-blue text-[13px] font-medium">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20">
+            <span className="text-violet-300 text-[13px] font-medium">
               ৳{Math.ceil(budget / previewDays)}/day × {previewDays} days
             </span>
           </div>
@@ -101,7 +123,7 @@ function Field({ label, suffix, children }) {
     <div>
       <div className="flex justify-between items-center mb-2">
         <label className="text-[13px] font-medium text-white/50 uppercase tracking-wider">{label}</label>
-        {suffix && <span className="text-[11px] text-white/30 uppercase tracking-wider">{suffix}</span>}
+        {suffix && <span className="text-[11px] text-white/25 uppercase tracking-wider">{suffix}</span>}
       </div>
       {children}
     </div>
@@ -118,30 +140,32 @@ function ProgressRing({ percentage }) {
 
   return (
     <div className="relative flex justify-center items-center py-4">
-      {/* Glow behind ring */}
-      <div className="absolute w-32 h-32 rounded-full animate-pulse-soft"
-           style={{ background: 'radial-gradient(circle, rgba(10,132,255,0.15) 0%, transparent 70%)' }} />
+      {/* Multi-color glow behind ring */}
+      <div className="absolute w-36 h-36 rounded-full animate-glow-pulse"
+           style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(6,182,212,0.1) 40%, transparent 70%)' }} />
 
       <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
-        <circle stroke="rgba(255,255,255,0.04)" strokeWidth="6" fill="none" cx="70" cy="70" r={r} />
+        <circle stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="none" cx="70" cy="70" r={r} />
         <circle
-          stroke="url(#ringGradient)" strokeWidth="6" fill="none"
+          stroke="url(#ringGradientAurora)" strokeWidth="6" fill="none"
           cx="70" cy="70" r={r}
           strokeDasharray={`${c} ${c}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
           className="transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.4))' }}
         />
         <defs>
-          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0A84FF" />
-            <stop offset="100%" stopColor="#64D2FF" />
+          <linearGradient id="ringGradientAurora" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#8B5CF6" />
+            <stop offset="50%" stopColor="#06B6D4" />
+            <stop offset="100%" stopColor="#34D399" />
           </linearGradient>
         </defs>
       </svg>
 
       <div className="absolute text-center">
-        <div className="text-[34px] font-bold text-white tracking-tight">{Math.round(percentage)}%</div>
+        <div className="text-[34px] font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent tracking-tight">{Math.round(percentage)}%</div>
         <div className="text-[11px] text-white/30 uppercase tracking-widest mt-0.5">saved</div>
       </div>
     </div>
@@ -153,18 +177,18 @@ function ProgressRing({ percentage }) {
    ═══════════════════════════════════════════════ */
 function StatsGrid({ totalSaved, daysLeft, todayTarget, budget }) {
   const stats = [
-    { label: 'Saved',  value: `৳${totalSaved}`,  color: 'text-ios-green' },
-    { label: 'Days Left', value: daysLeft, color: 'text-ios-teal' },
-    { label: 'Today',  value: `৳${todayTarget}`, color: 'text-ios-orange' },
-    { label: 'Goal',   value: `৳${budget}`,      color: 'text-white' },
+    { label: 'Saved',     value: `৳${totalSaved}`,  color: 'text-emerald-400', glow: 'stat-glow-emerald' },
+    { label: 'Days Left', value: daysLeft,           color: 'text-cyan-400',    glow: 'stat-glow-cyan' },
+    { label: 'Today',     value: `৳${todayTarget}`,  color: 'text-amber-400',   glow: 'stat-glow-amber' },
+    { label: 'Goal',      value: `৳${budget}`,       color: 'text-violet-300',  glow: 'stat-glow-violet' },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3">
       {stats.map((s, i) => (
-        <div key={s.label} className="glass glass-sm text-center"
+        <div key={s.label} className={`glass-liquid glass-sm text-center ${s.glow}`}
              style={{ animationDelay: `${i * 80}ms` }}>
-          <div className="text-[11px] font-medium text-white/35 uppercase tracking-widest mb-1.5">{s.label}</div>
+          <div className="text-[11px] font-medium text-white/30 uppercase tracking-widest mb-1.5">{s.label}</div>
           <div className={`text-[22px] font-bold tracking-tight ${s.color}`}>{s.value}</div>
         </div>
       ))}
@@ -182,7 +206,7 @@ function HistoryLedger({ history }) {
     return (
       <div className="text-center py-6">
         <div className="text-2xl mb-2 opacity-30">📒</div>
-        <p className="text-[13px] text-white/25">No entries yet</p>
+        <p className="text-[13px] text-white/20">No entries yet</p>
       </div>
     );
   }
@@ -191,17 +215,16 @@ function HistoryLedger({ history }) {
     <div className="space-y-0">
       {entries.map(([date, amount]) => {
         const missed = amount === 0;
-        // Format date nicely
         const d = new Date(date);
         const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
         return (
           <div key={date} className="flex justify-between items-center py-3 border-b border-white/[0.04] last:border-b-0">
             <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${missed ? 'bg-ios-red/60' : 'bg-ios-green/60'}`} />
-              <span className="text-[15px] text-white/50">{formatted}</span>
+              <div className={`w-2 h-2 rounded-full ${missed ? 'bg-rose-500/60' : 'bg-emerald-400/60'}`} />
+              <span className="text-[15px] text-white/40">{formatted}</span>
             </div>
-            <span className={`text-[15px] font-semibold ${missed ? 'text-ios-red/70' : 'text-ios-green'}`}>
+            <span className={`text-[15px] font-semibold ${missed ? 'text-rose-400/70' : 'text-emerald-400'}`}>
               {missed ? 'Deferred' : `৳${amount}`}
             </span>
           </div>
@@ -214,7 +237,7 @@ function HistoryLedger({ history }) {
 /* ═══════════════════════════════════════════════
    DASHBOARD
    ═══════════════════════════════════════════════ */
-function Dashboard({ state, onSave, onMiss, onSettings }) {
+function Dashboard({ state, user, lastSynced, onSave, onMiss, onSettings, onSignOut }) {
   const [customAmount, setCustomAmount] = useState('');
   const todayStr = getTodayDateStr();
   const todayTarget = getTodayTarget(state);
@@ -242,20 +265,36 @@ function Dashboard({ state, onSave, onMiss, onSettings }) {
   };
 
   return (
-    <div className="animate-fade-in flex flex-col min-h-screen">
+    <div className="animate-fade-in flex flex-col min-h-screen relative z-10">
       {/* ── Header Bar ── */}
       <header className="flex justify-between items-center px-5 py-4 sticky top-0 z-30"
-              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(30px) saturate(180%)', WebkitBackdropFilter: 'blur(30px) saturate(180%)' }}>
-        <h2 className="text-[20px] font-bold text-white tracking-tight flex items-center gap-2">
-          ✈️ Trip Saver
+              style={{ background: 'rgba(5,5,16,0.7)', backdropFilter: 'blur(30px) saturate(180%)', WebkitBackdropFilter: 'blur(30px) saturate(180%)' }}>
+        <h2 className="text-[20px] font-bold tracking-tight flex items-center gap-2">
+          <span>💰</span>
+          <span className="bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
+            Budget Saver
+          </span>
         </h2>
-        <button onClick={onSettings} className="text-white p-1">
-          <GearIcon />
-        </button>
+        <div className="flex items-center gap-2">
+          <ProfileBadge user={user} lastSynced={lastSynced} onSignOut={onSignOut} />
+          <button onClick={onSettings} className="text-white p-1">
+            <GearIcon />
+          </button>
+        </div>
       </header>
 
       {/* ── Content ── */}
       <div className="flex-1 px-5 py-4 space-y-5 overflow-y-auto pb-10">
+        {/* Sync status */}
+        {user && lastSynced && (
+          <div className="flex justify-center">
+            <div className="sync-pill">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Backed up
+            </div>
+          </div>
+        )}
+
         {/* Progress Ring */}
         <ProgressRing percentage={progress} />
 
@@ -263,24 +302,24 @@ function Dashboard({ state, onSave, onMiss, onSettings }) {
         <StatsGrid totalSaved={totalSaved} daysLeft={daysLeft} todayTarget={todayTarget} budget={state.budget} />
 
         {/* ── Action Card ── */}
-        <div className="glass">
+        <div className="glass-liquid">
           {hasSavedToday ? (
             <div className="text-center py-4">
               <CheckCircle />
-              <h3 className="text-[20px] font-bold text-ios-green mt-4 mb-1">All Done Today</h3>
-              <p className="text-[14px] text-white/40">You've hit your target. Rest easy.</p>
+              <h3 className="text-[20px] font-bold text-emerald-400 mt-4 mb-1">All Done Today</h3>
+              <p className="text-[14px] text-white/35">You've hit your target. Rest easy.</p>
             </div>
           ) : (
             <>
               <h3 className="text-[17px] font-bold text-white mb-1">Log Savings</h3>
               {state.penaltyAmount > 0 ? (
-                <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-ios-red/10 border border-ios-red/15">
-                  <span className="text-ios-red text-[13px] font-medium">
+                <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl bg-rose-500/8 border border-rose-500/15">
+                  <span className="text-rose-400 text-[13px] font-medium">
                     ⚠️ ৳{state.penaltyAmount} penalty included
                   </span>
                 </div>
               ) : (
-                <p className="text-[14px] text-white/30 mb-4">How much did you save today?</p>
+                <p className="text-[14px] text-white/25 mb-4">How much did you save today?</p>
               )}
 
               <input
@@ -303,7 +342,7 @@ function Dashboard({ state, onSave, onMiss, onSettings }) {
         </div>
 
         {/* ── History ── */}
-        <div className="glass">
+        <div className="glass-liquid">
           <h3 className="text-[17px] font-bold text-white mb-3 flex items-center gap-2">
             <span className="opacity-40">📒</span> History
           </h3>
@@ -315,10 +354,109 @@ function Dashboard({ state, onSave, onMiss, onSettings }) {
 }
 
 /* ═══════════════════════════════════════════════
+   SETTINGS SCREEN
+   ═══════════════════════════════════════════════ */
+function Settings({ state, onSave, onBack, onReset }) {
+  const [budget, setBudget] = useState(state.budget);
+  const [endDate, setEndDate] = useState(state.endDate);
+  const [dailyLimit, setDailyLimit] = useState(state.manualDailyTarget || 0);
+
+  const handleSave = () => {
+    onSave({ budget, endDate, manualDailyTarget: dailyLimit });
+  };
+
+  return (
+    <div className="animate-slide-up w-full px-5 py-6 flex flex-col min-h-screen relative z-10 pb-10">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8 pt-4">
+        <button onClick={onBack} className="p-2.5 -ml-2 text-white/70 hover:text-white rounded-full bg-white/5 backdrop-blur-md shadow-sm transition-all hover:bg-white/10 active:scale-95">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 className="text-[24px] font-bold text-white tracking-tight">Preferences</h2>
+      </div>
+
+      <div className="space-y-8 flex-1">
+        {/* Journey Configuration */}
+        <div className="animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <h3 className="text-[12px] font-bold text-white/30 uppercase tracking-[0.15em] mb-3 ml-2 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400/50"></span> Journey Configuration
+          </h3>
+          <div className="glass-liquid space-y-5 p-5">
+            <Field label="Total Goal" suffix="BDT">
+              <input type="number" value={budget} onChange={e => setBudget(parseInt(e.target.value) || 0)} className="input-ios text-right text-white font-semibold" />
+            </Field>
+
+            <div className="h-[1px] bg-white/5 -mx-5" />
+
+            <Field label="Target End Date">
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="input-ios text-white text-right" />
+            </Field>
+
+            <div className="h-[1px] bg-white/5 -mx-5" />
+
+            <Field label="Daily Limit" suffix="0 = Dynamic">
+              <input type="number" value={dailyLimit} onChange={e => setDailyLimit(parseInt(e.target.value) || 0)} className="input-ios text-right text-white font-semibold" placeholder="0" />
+            </Field>
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <h3 className="text-[12px] font-bold text-rose-400/50 uppercase tracking-[0.15em] mb-3 ml-2 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500/50"></span> Danger Zone
+          </h3>
+          <div className="glass-liquid p-2" style={{ borderColor: 'rgba(244, 63, 94, 0.2)', background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.05), rgba(0,0,0,0))' }}>
+            <button onClick={() => { if(confirm('Are you absolutely sure? This will wipe all current progress!')) onReset() }} className="w-full py-3.5 text-rose-400 font-bold tracking-wide rounded-xl hover:bg-rose-500/10 transition-colors">
+              Reset Entire Tracker
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-8 w-full pb-[calc(env(safe-area-inset-bottom)+20px)]">
+        <button onClick={handleSave} className="btn-primary w-full shadow-[0_0_20px_rgba(139,92,246,0.2)] !py-3.5 text-[16px]">
+          Save Preferences
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
    MAIN APP
    ═══════════════════════════════════════════════ */
 export default function App() {
   const [state, setState] = useState(() => loadState());
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const [showSettingsView, setShowSettingsView] = useState(false);
+
+  // Listen to auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthChecked(true);
+
+      if (firebaseUser) {
+        // Restore from cloud on sign-in
+        try {
+          const cloudState = await restoreFromCloud(firebaseUser.uid);
+          if (cloudState) {
+            const currentLocal = loadState();
+            const merged = mergeStates(currentLocal, cloudState);
+            saveState(merged);
+            setState({ ...merged });
+            setLastSynced(Date.now());
+          }
+        } catch (err) {
+          console.warn('Cloud restore error:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Morning notification
   useEffect(() => {
@@ -333,10 +471,26 @@ export default function App() {
     }
   }, []);
 
-  const persist = (updated) => {
+  // Show sign-in on first visit if not authenticated
+  useEffect(() => {
+    if (authChecked && !user) {
+      const skipSignIn = localStorage.getItem('skipSignIn');
+      if (!skipSignIn) {
+        setShowSignIn(true);
+      }
+    }
+  }, [authChecked, user]);
+
+  const persist = useCallback(async (updated) => {
     saveState(updated);
     setState({ ...updated });
-  };
+
+    // Background cloud backup
+    if (user) {
+      const success = await backupToCloud(user.uid, updated);
+      if (success) setLastSynced(Date.now());
+    }
+  }, [user]);
 
   const handleStart = ({ budget, startDate, endDate, manualDailyTarget }) => {
     const updated = { ...state, budget, startDate, endDate, manualDailyTarget, isConfigured: true };
@@ -358,7 +512,7 @@ export default function App() {
 
     confetti({
       particleCount: 80, spread: 60, origin: { y: 0.7 },
-      colors: ['#0A84FF', '#30D158', '#64D2FF', '#ffffff'],
+      colors: ['#8B5CF6', '#06B6D4', '#34D399', '#ffffff'],
       ticks: 150, gravity: 1.2, scalar: 0.9,
     });
 
@@ -383,15 +537,76 @@ export default function App() {
     showLocalNotification('Skipped', `৳${updated.penaltyAmount} penalty rolls to tomorrow.`);
   };
 
-  const handleSettings = () => persist({ ...state, isConfigured: false });
+  const handleSettings = () => setShowSettingsView(true);
+
+  const handleSaveSettings = ({ budget, endDate, manualDailyTarget }) => {
+    const updated = { ...state, budget, endDate, manualDailyTarget };
+    persist(updated);
+    setShowSettingsView(false);
+    showLocalNotification('Settings Saved ⚙️', 'Your tracker has been updated.');
+  };
+
+  const handleReset = () => {
+    const fresh = getInitialState();
+    persist(fresh);
+    setShowSettingsView(false);
+  };
+
+  const handleSignedIn = (firebaseUser) => {
+    setUser(firebaseUser);
+    setShowSignIn(false);
+  };
+
+  const handleSkipSignIn = () => {
+    localStorage.setItem('skipSignIn', 'true');
+    setShowSignIn(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setUser(null);
+    setLastSynced(null);
+    localStorage.removeItem('skipSignIn');
+  };
+
+  // Loading state while checking auth
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-aurora-900 flex items-center justify-center">
+        <AuroraBackground />
+        <div className="relative z-10 text-center animate-fade-in">
+          <div className="text-5xl mb-4 animate-float">💰</div>
+          <div className="w-6 h-6 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
 
   const isReady = state.isConfigured && state.startDate && state.endDate;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans flex justify-center">
+    <div className="min-h-screen bg-aurora-900 text-white font-sans flex justify-center">
+      <AuroraBackground />
       <div className="w-full max-w-[430px] min-h-screen relative">
-        {isReady ? (
-          <Dashboard state={state} onSave={handleSave} onMiss={handleMiss} onSettings={handleSettings} />
+        {showSignIn ? (
+          <SignInPage onSkip={handleSkipSignIn} onSignedIn={handleSignedIn} />
+        ) : showSettingsView ? (
+          <Settings 
+             state={state} 
+             onSave={handleSaveSettings} 
+             onBack={() => setShowSettingsView(false)} 
+             onReset={handleReset} 
+          />
+        ) : isReady ? (
+          <Dashboard
+            state={state}
+            user={user}
+            lastSynced={lastSynced}
+            onSave={handleSave}
+            onMiss={handleMiss}
+            onSettings={handleSettings}
+            onSignOut={handleSignOut}
+          />
         ) : (
           <Onboarding state={state} onStart={handleStart} />
         )}

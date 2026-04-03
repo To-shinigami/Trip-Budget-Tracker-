@@ -23,19 +23,41 @@ export default defineConfig({
             src: 'icon-192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
           {
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'premium-logo.png',
+            sizes: '1024x1024',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
+        screenshots: [
+          {
+            src: 'screenshots/desktop.png',
+            sizes: '1920x1080',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Desktop Dashboard'
+          },
+          {
+            src: 'screenshots/mobile.png',
+            sizes: '390x844',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Mobile Dashboard'
+          }
+        ]
       },
       workbox: {
-        // Pre-cache all built assets (JS, CSS, HTML)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Pre-cache all built assets (JS, CSS, HTML, PNGs)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs}'],
         // Runtime caching for Google Fonts
         runtimeCaching: [
           {

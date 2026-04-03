@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase.js';
 import { backupToCloud, restoreFromCloud, mergeStates } from './backup.js';
 import { SignInPage, ProfileBadge } from './auth.jsx';
+import { LogoIcon } from './Logo.jsx';
 import {
   loadState, saveState, getTodayDateStr,
   getTodayTarget, getTotalSaved, getInitialState
@@ -15,8 +16,8 @@ import { requestNotificationPermission, showLocalNotification } from './notifica
    ═══════════════════════════════════════════════ */
 const GearIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 hover:opacity-100 transition-opacity">
-    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-    <circle cx="12" cy="12" r="3"/>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
@@ -28,8 +29,8 @@ const CheckCircle = () => (
         <stop offset="100%" stopColor="#06B6D4" />
       </linearGradient>
     </defs>
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-    <polyline points="22 4 12 14.01 9 11.01"/>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
   </svg>
 );
 
@@ -70,7 +71,7 @@ function Onboarding({ state, onStart }) {
     <div className="animate-slide-up w-full px-5 py-10 flex flex-col justify-center min-h-screen relative z-10">
       {/* Header */}
       <div className="text-center mb-10">
-        <div className="text-5xl mb-4 animate-float">💰</div>
+        <LogoIcon className="w-20 h-20 mx-auto mb-5 animate-float drop-shadow-[0_0_20px_rgba(139,92,246,0.3)]" />
         <h1 className="text-[28px] font-bold bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent tracking-tight">
           Budget Saver
         </h1>
@@ -142,7 +143,7 @@ function ProgressRing({ percentage }) {
     <div className="relative flex justify-center items-center py-4">
       {/* Multi-color glow behind ring */}
       <div className="absolute w-36 h-36 rounded-full animate-glow-pulse"
-           style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(6,182,212,0.1) 40%, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(6,182,212,0.1) 40%, transparent 70%)' }} />
 
       <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
         <circle stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="none" cx="70" cy="70" r={r} />
@@ -177,17 +178,17 @@ function ProgressRing({ percentage }) {
    ═══════════════════════════════════════════════ */
 function StatsGrid({ totalSaved, daysLeft, todayTarget, budget }) {
   const stats = [
-    { label: 'Saved',     value: `৳${totalSaved}`,  color: 'text-emerald-400', glow: 'stat-glow-emerald' },
-    { label: 'Days Left', value: daysLeft,           color: 'text-cyan-400',    glow: 'stat-glow-cyan' },
-    { label: 'Today',     value: `৳${todayTarget}`,  color: 'text-amber-400',   glow: 'stat-glow-amber' },
-    { label: 'Goal',      value: `৳${budget}`,       color: 'text-violet-300',  glow: 'stat-glow-violet' },
+    { label: 'Saved', value: `৳${totalSaved}`, color: 'text-emerald-400', glow: 'stat-glow-emerald' },
+    { label: 'Days Left', value: daysLeft, color: 'text-cyan-400', glow: 'stat-glow-cyan' },
+    { label: 'Today', value: `৳${todayTarget}`, color: 'text-amber-400', glow: 'stat-glow-amber' },
+    { label: 'Goal', value: `৳${budget}`, color: 'text-violet-300', glow: 'stat-glow-violet' },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3">
       {stats.map((s, i) => (
         <div key={s.label} className={`glass-liquid glass-sm text-center ${s.glow}`}
-             style={{ animationDelay: `${i * 80}ms` }}>
+          style={{ animationDelay: `${i * 80}ms` }}>
           <div className="text-[11px] font-medium text-white/30 uppercase tracking-widest mb-1.5">{s.label}</div>
           <div className={`text-[22px] font-bold tracking-tight ${s.color}`}>{s.value}</div>
         </div>
@@ -268,9 +269,9 @@ function Dashboard({ state, user, lastSynced, onSave, onMiss, onSettings, onSign
     <div className="animate-fade-in flex flex-col min-h-screen relative z-10">
       {/* ── Header Bar ── */}
       <header className="flex justify-between items-center px-5 py-4 sticky top-0 z-30"
-              style={{ background: 'rgba(5,5,16,0.7)', backdropFilter: 'blur(30px) saturate(180%)', WebkitBackdropFilter: 'blur(30px) saturate(180%)' }}>
+        style={{ background: 'rgba(5,5,16,0.7)', backdropFilter: 'blur(30px) saturate(180%)', WebkitBackdropFilter: 'blur(30px) saturate(180%)' }}>
         <h2 className="text-[20px] font-bold tracking-tight flex items-center gap-2">
-          <span>💰</span>
+          <LogoIcon className="w-8 h-8 drop-shadow-[0_0_10px_rgba(139,92,246,0.2)]" />
           <span className="bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
             Budget Saver
           </span>
@@ -370,7 +371,7 @@ function Settings({ state, onSave, onBack, onReset }) {
       {/* Header */}
       <div className="flex items-center gap-4 mb-8 pt-4">
         <button onClick={onBack} className="p-2.5 -ml-2 text-white/70 hover:text-white rounded-full bg-white/5 backdrop-blur-md shadow-sm transition-all hover:bg-white/10 active:scale-95">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
         <h2 className="text-[24px] font-bold text-white tracking-tight">Preferences</h2>
       </div>
@@ -406,7 +407,7 @@ function Settings({ state, onSave, onBack, onReset }) {
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500/50"></span> Danger Zone
           </h3>
           <div className="glass-liquid p-2" style={{ borderColor: 'rgba(244, 63, 94, 0.2)', background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.05), rgba(0,0,0,0))' }}>
-            <button onClick={() => { if(confirm('Are you absolutely sure? This will wipe all current progress!')) onReset() }} className="w-full py-3.5 text-rose-400 font-bold tracking-wide rounded-xl hover:bg-rose-500/10 transition-colors">
+            <button onClick={() => { if (confirm('Are you absolutely sure? This will wipe all current progress!')) onReset() }} className="w-full py-3.5 text-rose-400 font-bold tracking-wide rounded-xl hover:bg-rose-500/10 transition-colors">
               Reset Entire Tracker
             </button>
           </div>
@@ -575,7 +576,7 @@ export default function App() {
       <div className="min-h-screen bg-aurora-900 flex items-center justify-center">
         <AuroraBackground />
         <div className="relative z-10 text-center animate-fade-in">
-          <div className="text-5xl mb-4 animate-float">💰</div>
+          <LogoIcon className="w-20 h-20 mx-auto mb-6 animate-float drop-shadow-[0_0_30px_rgba(6,182,212,0.4)]" />
           <div className="w-6 h-6 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mx-auto" />
         </div>
       </div>
@@ -591,11 +592,11 @@ export default function App() {
         {showSignIn ? (
           <SignInPage onSkip={handleSkipSignIn} onSignedIn={handleSignedIn} />
         ) : showSettingsView ? (
-          <Settings 
-             state={state} 
-             onSave={handleSaveSettings} 
-             onBack={() => setShowSettingsView(false)} 
-             onReset={handleReset} 
+          <Settings
+            state={state}
+            onSave={handleSaveSettings}
+            onBack={() => setShowSettingsView(false)}
+            onReset={handleReset}
           />
         ) : isReady ? (
           <Dashboard

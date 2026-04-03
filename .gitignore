@@ -3,3 +3,5 @@ dist
 *.bak
 .DS_Store
 firebase-config.txt
+
+.vercel

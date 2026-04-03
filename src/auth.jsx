@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from './firebase.js';
+import { LogoIcon } from './Logo.jsx';
 
 /* ═══════════════════════════════════════════════
    SIGN-IN PAGE
@@ -38,7 +39,7 @@ export function SignInPage({ onSkip, onSignedIn }) {
 
       {/* Logo */}
       <div className="relative z-10 text-center mb-12">
-        <div className="text-6xl mb-5 animate-float">💰</div>
+        <LogoIcon className="w-24 h-24 mx-auto mb-5 animate-float drop-shadow-[0_0_30px_rgba(139,92,246,0.3)]" />
         <h1 className="text-[32px] font-bold bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent tracking-tight">
           Budget Saver
         </h1>
